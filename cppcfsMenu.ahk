@@ -13,21 +13,33 @@ SetWorkingDir A_ScriptDir
         MsgBox "No item selected or not in File Explorer."
         return
     }
+    MsgBox("Selected path:`n" . selected, "Debug Info", "OK")
 
     ; Properly quote the selected path for the command line
     quotedSelected := '"' selected '"'
+    MsgBox("Quoted selected path:`n" . quotedSelected, "Debug Info", "OK")
+
+    ; Construct the full command
+    fullCommand := A_ComSpec ' /c cppcryptfsctl.exe -M ' quotedSelected ' > "' A_Temp '\cppcfs_output.txt" 2>&1'
+    MsgBox("Full command:`n" . fullCommand, "Debug Info", "OK")
 
     ; Run cppcryptfsctl.exe to get the translated path
-    RunWait A_ComSpec ' /c cppcryptfsctl.exe -M ' quotedSelected ' > "' A_Temp '\cppcfs_output.txt" 2>&1', , "Hide"
+    RunWait fullCommand, , "Hide"
 
     ; Read the output file
     try
     {
-        translatedPath := FileRead(A_Temp "\cppcfs_output.txt")
+        rawOutput := FileRead(A_Temp "\cppcfs_output.txt")
+        MsgBox("Raw output from cppcryptfsctl.exe:`n" . rawOutput, "Debug Info", "OK")
+
+        ; Clean up the output
+        translatedPath := RegExReplace(rawOutput, "[\r\n]+$")  ; Remove trailing newlines
+        translatedPath := RegExReplace(translatedPath, "[^\x20-\x7E]", "")  ; Remove non-printable characters
+        MsgBox("Cleaned translated path:`n" . translatedPath, "Debug Info", "OK")
     }
-    catch
+    catch as err
     {
-        MsgBox "Failed to read the output file."
+        MsgBox("Failed to read the output file. Error: " . err.Message, "Error", "OK")
         return
     }
 
@@ -36,6 +48,7 @@ SetWorkingDir A_ScriptDir
 
     ; Store the translated path in a global variable
     global translatedPath := Trim(translatedPath)
+    MsgBox("Final translated path:`n" . translatedPath, "Debug Info", "OK")
 
     ; Check if translatedPath is empty or contains an error
     if (translatedPath == "" || InStr(translatedPath, "Error"))
@@ -88,14 +101,13 @@ OpenInFileExplorer(ItemName, ItemPos, MenuObj)
     translatedPath := Trim(translatedPath)
     translatedPath := StrReplace(translatedPath, '"', '')
     translatedPath := StrReplace(translatedPath, "`r`n", "")
-
-    ;MsgBox "Translated Path: " translatedPath
+    MsgBox("Cleaned translated path:`n" . translatedPath, "Debug Info", "OK")
 
     ; Check if the path exists and get its attributes
     attr := FileExist(translatedPath)
     if attr
     {
-        ;MsgBox "File Attributes: " attr
+        MsgBox("File Attributes: " . attr, "Debug Info", "OK")
 
         if InStr(attr, "D")  ; Check if it's a directory
         {

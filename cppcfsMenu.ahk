@@ -46,6 +46,7 @@ SetWorkingDir A_ScriptDir
 
     ; Create a new menu
     TranslatedPathMenu := Menu()
+    TranslatedPathMenu.Add(translatedPath, DismissMenu)  ; New item to display the translated path
     TranslatedPathMenu.Add("Copy Translated Path", CopyTranslatedPath)
     TranslatedPathMenu.Add("Open in File Explorer", OpenInFileExplorer)
     TranslatedPathMenu.Show()
@@ -111,4 +112,10 @@ OpenInFileExplorer(ItemName, ItemPos, MenuObj)
     {
         MsgBox "The translated path does not exist or is not accessible:`n" translatedPath
     }
+}
+
+; New function to dismiss the menu without action
+DismissMenu(ItemName, ItemPos, MenuObj)
+{
+    return  ; Do nothing, which will dismiss the menu
 }

@@ -1,19 +1,63 @@
-; AutoHotkey v2 Script, 241018T005501 final version, fm v002
+; AutoHotkey v2 Script
+#Requires AutoHotkey v2.0
+#SingleInstance Force
 
 ; Set the working directory to the script's directory
 SetWorkingDir A_ScriptDir
 
-; Hotkey to trigger the script (Ctrl+Shift+Alt+C)
+; Add context menu on script startup
+AddContextMenu()
+
+; Remove context menu on script exit
+OnExit RemoveContextMenu
+
+; Function to add context menu entries
+AddContextMenu() {
+    try {
+        ; Add for files
+        RegWrite("CPPCFS Translate", "REG_SZ", "HKEY_CURRENT_USER\Software\Classes\*\shell\CPPCFSTranslate")
+        RegWrite("Translate CPPCFS Path", "REG_SZ", "HKEY_CURRENT_USER\Software\Classes\*\shell\CPPCFSTranslate")
+        RegWrite('"' A_ScriptFullPath '" "%1"', "REG_SZ", "HKEY_CURRENT_USER\Software\Classes\*\shell\CPPCFSTranslate\command")
+        
+        ; Add for directories
+        RegWrite("CPPCFS Translate", "REG_SZ", "HKEY_CURRENT_USER\Software\Classes\Directory\shell\CPPCFSTranslate")
+        RegWrite("Translate CPPCFS Path", "REG_SZ", "HKEY_CURRENT_USER\Software\Classes\Directory\shell\CPPCFSTranslate")
+        RegWrite('"' A_ScriptFullPath '" "%1"', "REG_SZ", "HKEY_CURRENT_USER\Software\Classes\Directory\shell\CPPCFSTranslate\command")
+    }
+    catch as err {
+        MsgBox "Failed to add context menu entries. Try running as administrator.`n`nError: " err.Message
+        ExitApp
+    }
+}
+
+; Function to remove context menu entries on exit
+RemoveContextMenu(ExitReason, ExitCode) {
+    try {
+        RegDelete("HKEY_CURRENT_USER\Software\Classes\*\shell\CPPCFSTranslate")
+        RegDelete("HKEY_CURRENT_USER\Software\Classes\Directory\shell\CPPCFSTranslate")
+    }
+}
+
+; Handle command line parameter when launched from context menu
+if A_Args.Length > 0 {
+    selected := A_Args[1]
+    ShowTranslatedPath(selected)
+}
+
+; Keep the original hotkey as fallback
 ^+!c::
 {
-    ; Get the selected item's path in File Explorer
     selected := GetSelectedItemPath()
     if (selected == "")
     {
         MsgBox "No item selected or not in File Explorer."
         return
     }
+    ShowTranslatedPath(selected)
+}
 
+; New function to handle path translation and menu display
+ShowTranslatedPath(selected) {
     ; Properly quote the selected path for the command line
     quotedSelected := '"' selected '"'
 
@@ -51,7 +95,6 @@ SetWorkingDir A_ScriptDir
     TranslatedPathMenu.Add("Open in File Explorer", OpenInFileExplorer)
     TranslatedPathMenu.Show()
 }
-return
 
 ; Function to get the selected item's path in File Explorer
 GetSelectedItemPath()
